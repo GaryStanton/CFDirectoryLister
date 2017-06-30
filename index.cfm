@@ -31,13 +31,41 @@
 		<td><b>Size</b></td>
 		<td><b>Date</b></td>
 	</tr>
-	<cfloop query="myDirectoryListing">
+
+	<cfquery name="FolderListings" dbtype="Query">
+		SELECT 		*, LOWER(Name) AS Sorting
+		FROM 		myDirectoryListing
+		WHERE 		Type = 'Dir'
+		AND 		Attributes != 'H'
+		ORDER BY 	Sorting ASC
+	</cfquery>
+
+	<cfquery name="FileListings" dbtype="Query">
+		SELECT 		*, LOWER(Name) AS Sorting
+		FROM 		myDirectoryListing
+		WHERE 		Type = 'File'
+		AND 		Attributes != 'H'
+		ORDER BY 	Sorting ASC
+	</cfquery>
+
+	<cfloop query="FolderListings">
 		<tr>
 			<td><img src="#getIcon(name, type)#" /></td>
 			<td><a href="#name#">#name#</a></td>
-			<td>#getFileSize(size)#</td>
+			<td></td>
 			<td>#getDate(datelastmodified)#</td>
 		</tr>
+	</cfloop>
+
+	<cfloop query="FileListings">
+		<cfif NOT ListFindNoCase('index.cfm,thumbs.db,.ds_store', Name)>
+			<tr>
+				<td><img src="#getIcon(name, type)#" /></td>
+				<td><a href="#name#">#name#</a></td>
+				<td>#getFileSize(size)#</td>
+				<td>#getDate(datelastmodified)#</td>
+			</tr>
+		</cfif>
 	</cfloop>
 </table>
 
@@ -115,9 +143,17 @@
 		} else {
 			// get current file extension
 			local.extension = REMatch('\.[\d\w]+$', arguments.name);
+
+
 			try {
+				// Office XML file extensions
+				Local.extension = ListFindNoCase('.docx,.docm,.dotx,.dotm,.xlsx,.xlsm,.xlsb,.xltx,.xltm,.pptx,.pptm,.potx,.potm', Local.extension[1]) ? Left(Local.extension[1], 4) : Local.extension[1];
+				if (Local.extension EQ '.dot') Local.extension = '.doc';
+				if (Local.extension EQ '.xlt') Local.extension = '.xls';
+				if (Local.extension EQ '.pot') Local.extension = '.ppt';
+
 				// if the extension matches an icon return it
-				return local.image & local.icons[local.extension[1]];
+				return local.image & local.icons[local.extension];
 			} catch(any e) {
 				// or just return a generic file icon
 				return local.image & local.icons['file'];
